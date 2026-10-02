@@ -17,6 +17,8 @@
     <!-- 前置 RitsuLib（本幕事件与诅咒经它注册）；引用取创意工坊安装目录里与目标游戏版本对应的 compat 变体。 -->
     <RitsuLibRoot Condition="'$(RitsuLibRoot)' == ''">$(SteamAppsDir)/workshop/content/2868840/3747602295</RitsuLibRoot>
     <RitsuLibReferenceTarget>$(ChernobogSts2Target)</RitsuLibReferenceTarget>
+    <!-- 前置 ActLikeIt2（第二幕选幕界面经它注册）；引用取创意工坊安装目录。 -->
+    <ActLikeIt2Root Condition="'$(ActLikeIt2Root)' == ''">$(SteamAppsDir)/workshop/content/2868840/3808369281</ActLikeIt2Root>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +32,10 @@
     </Reference>
     <Reference Include="0Harmony">
       <HintPath>$(GameDataDir)/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ActLikeIt2">
+      <HintPath>$(ActLikeIt2Root)/ActLikeIt2.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

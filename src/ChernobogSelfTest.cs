@@ -83,22 +83,28 @@ internal static class ChernobogSelfTest
 			return names;
 		});
 
-		Check("random list rolls act", () =>
+		// 本幕不进原版随机幕列表，只经 ActLikeIt2 的第二幕选幕界面出现（见 ChernobogAct）。
+		Check("random list never rolls act", () =>
 		{
-			int hits = 0;
 			const int rolls = 200;
 			for (ulong seed = 1; seed <= rolls; seed++)
 			{
 				List<ActModel> acts = ActModel.GetRandomList(new Rng(seed), UnlockState.all, isMultiplayer: true).ToList();
 				Require(acts.Count == 3, $"seed {seed} gave {acts.Count} acts");
-				if (acts[ChernobogAct.ActIndex] == canonical)
-				{
-					hits++;
-				}
+				Require(acts[ChernobogAct.ActIndex] != canonical, $"seed {seed} rolled {canonical.Id.Entry}");
 			}
 
-			Require(hits > 0 && hits < rolls, $"hits={hits}");
-			return $"act 2 = {canonical.Id.Entry} in {hits}/{rolls} multiplayer rolls";
+			return $"act 2 never {canonical.Id.Entry} in {rolls} multiplayer rolls";
+		});
+
+		Check("ActLikeIt2 fork registration", () =>
+		{
+			ActLikeIt2.ActRegistration? registration = ActLikeIt2.ActRegistry.GetRegistrationsForSlot(ChernobogAct.ActIndex + 1)
+				.SingleOrDefault(r => r.CanonicalAct == canonical);
+			Require(registration != null, $"{canonical.Id.Entry} not registered for act {ChernobogAct.ActIndex + 1}");
+			string description = registration!.OptionDescription?.GetFormattedText() ?? "";
+			Require(description.Length > 0 && !description.Contains(".description"), $"description '{description}'");
+			return $"act {registration.ActNumber}: {description}";
 		});
 
 		Check("generate rooms", () =>

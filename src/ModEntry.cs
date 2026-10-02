@@ -1,9 +1,11 @@
+using ActLikeIt2;
 using ArknightsChernobog.Acts;
 using ArknightsChernobog.Cards;
 using ArknightsChernobog.Encounters;
 using ArknightsChernobog.Events;
 using ArknightsChernobog.Monsters;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -32,7 +34,7 @@ public static class ModEntry
 		Audio.ReunionBossMusic.Install(new Harmony(HarmonyId));
 		Powers.LeadershipNullDealerGuard.Install(new Harmony(HarmonyId));
 		ChernobogSelfTest.InstallIfRequested(new Harmony(HarmonyId));
-		Log.Info($"[{ModId}] Loaded; registered {nameof(ChernobogAct)} as an act-index {ChernobogAct.ActIndex} variant through RitsuLib.");
+		Log.Info($"[{ModId}] Loaded; registered {nameof(ChernobogAct)} as an act-index {ChernobogAct.ActIndex} variant through RitsuLib and ActLikeIt2.");
 	}
 
 	// 以下三张表只往末尾追加、不重排不改名：类名经 RitsuLib 得出模型 id（ARKNIGHTS_CHERNOBOG_<类别>_<类名>），存档按 id 引用。
@@ -86,6 +88,12 @@ public static class ModEntry
 	{
 		ModContentRegistry registry = ModContentRegistry.For(ModId);
 		registry.RegisterAct<ChernobogAct>();
+		// 第二幕选幕界面的候选（ActNumber 从 1 起算）；ActLikeIt2 在模型库初始化后自行解析模型，这里只需在初始化阶段登记。
+		ActRegistry.Register<ChernobogAct>(new ActRegistrationOptions
+		{
+			ActNumber = ChernobogAct.ActIndex + 1,
+			OptionDescription = new LocString("acts", "ARKNIGHTS_CHERNOBOG_ACT_CHERNOBOG_ACT.description")
+		});
 		foreach (Type encounterType in ActEncounterTypes)
 		{
 			registry.RegisterActEncounter(typeof(ChernobogAct), encounterType);
