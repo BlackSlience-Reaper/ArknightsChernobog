@@ -17,7 +17,7 @@
 ## 许可
 
 代码、构建工具、本地化文本和为本模组创作的美术以 [MIT](LICENSE) 许可开源。
-以下第三方素材不在 MIT 范围内，版权归原方所有，仅作同人、非商业用途：
+以下第三方素材不在 MIT 范围内，版权归原方所有，仅作同人、非商业用途（英文说明见 [NOTICE](NOTICE.md)）：
 
 - 《明日方舟》角色、敌人 Spine 动画（`assets/animations/`、`assets/_imported/`）及相关设计：鹰角网络（Hypergryph）；
 - `assets/audio/music/` 中的 Boss 战音乐：塞壬唱片（Monster Siren Records）；

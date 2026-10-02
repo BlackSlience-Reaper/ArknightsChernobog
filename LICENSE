@@ -19,17 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Scope of this license
-
-This license covers the source code, build tools, localization text and the
-original artwork created for this mod. It does NOT cover the following
-third-party material included in this repository, which remains the property
-of its respective owners and is included only for fan, non-commercial use:
-
-- Arknights characters, enemy Spine animations (assets/animations/,
-  assets/_imported/) and related designs: (c) Hypergryph / Studio Montagne.
-- Boss music in assets/audio/music/: (c) Monster Siren Records (Hypergryph).
-- Slay the Spire 2 and any game assets it references: (c) Mega Crit.
