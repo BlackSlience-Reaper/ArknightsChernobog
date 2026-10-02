@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[node name="Encounter" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="fighter" type="Marker2D" parent="."]
+position = Vector2(1118, 740)
+
+[node name="recruit1" type="Marker2D" parent="."]
+position = Vector2(1328, 740)
+
+[node name="recruit2" type="Marker2D" parent="."]
+position = Vector2(1538, 740)
+
+[node name="herald" type="Marker2D" parent="."]
+position = Vector2(1755, 740)

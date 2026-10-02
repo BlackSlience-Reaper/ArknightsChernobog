@@ -1,0 +1,12 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+path="res://ArknightsChernobog/_imported/enemy_1080_sotidp.skel.spskel"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/sotidp/enemy_1080_sotidp.skel"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1080_sotidp.skel.spskel"]
+
+[params]

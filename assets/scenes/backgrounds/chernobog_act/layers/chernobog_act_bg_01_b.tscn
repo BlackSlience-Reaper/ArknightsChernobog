@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/backgrounds/hive/layers/hive_bg_01_b.tscn" id="1_base"]
+[ext_resource type="Texture2D" path="res://ArknightsChernobog/images/rooms/chernobog_act/chernobog_act_01_b.png" id="tex_0"]
+
+[node name="A" instance=ExtResource("1_base")]
+texture = ExtResource("tex_0")

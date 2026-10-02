@@ -1,0 +1,12 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+path="res://ArknightsChernobog/_imported/enemy_1037_lunsabr.skel.spskel"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/lunsabr/enemy_1037_lunsabr.skel"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1037_lunsabr.skel.spskel"]
+
+[params]

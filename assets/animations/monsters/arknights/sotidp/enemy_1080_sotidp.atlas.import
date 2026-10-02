@@ -1,0 +1,15 @@
+[remap]
+
+importer="spine.atlas"
+type="SpineAtlasResource"
+path="res://ArknightsChernobog/_imported/enemy_1080_sotidp.atlas.spatlas"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/sotidp/enemy_1080_sotidp.atlas"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1080_sotidp.atlas.spatlas"]
+
+[params]
+
+normal_map_prefix="n"
+specular_map_prefix="s"

@@ -1,0 +1,12 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+path="res://ArknightsChernobog/_imported/enemy_1063_rageth.skel.spskel"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/rageth/enemy_1063_rageth.skel"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1063_rageth.skel.spskel"]
+
+[params]

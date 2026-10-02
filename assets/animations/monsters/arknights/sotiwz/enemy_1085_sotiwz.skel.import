@@ -1,0 +1,12 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+path="res://ArknightsChernobog/_imported/enemy_1085_sotiwz.skel.spskel"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/sotiwz/enemy_1085_sotiwz.skel"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1085_sotiwz.skel.spskel"]
+
+[params]

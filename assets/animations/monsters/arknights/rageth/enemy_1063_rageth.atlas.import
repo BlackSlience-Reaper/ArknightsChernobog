@@ -1,0 +1,15 @@
+[remap]
+
+importer="spine.atlas"
+type="SpineAtlasResource"
+path="res://ArknightsChernobog/_imported/enemy_1063_rageth.atlas.spatlas"
+
+[deps]
+
+source_file="res://ArknightsChernobog/animations/monsters/arknights/rageth/enemy_1063_rageth.atlas"
+dest_files=["res://ArknightsChernobog/_imported/enemy_1063_rageth.atlas.spatlas"]
+
+[params]
+
+normal_map_prefix="n"
+specular_map_prefix="s"
