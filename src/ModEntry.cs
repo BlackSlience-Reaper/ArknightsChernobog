@@ -5,6 +5,7 @@ using ArknightsChernobog.Encounters;
 using ArknightsChernobog.Events;
 using ArknightsChernobog.Monsters;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Models;
@@ -88,7 +89,11 @@ public static class ModEntry
 		ModContentRegistry registry = ModContentRegistry.For(ModId);
 		registry.RegisterAct<ChernobogAct>();
 		// 第二幕选幕界面的候选（ActNumber 从 1 起算）；ActLikeIt2 在模型库初始化后自行解析模型，这里只需在初始化阶段登记。
-		ActRegistry.Register<ChernobogAct>(ChernobogAct.ActIndex + 1);
+		ActRegistry.Register<ChernobogAct>(new ActRegistrationOptions
+		{
+			ActNumber = ChernobogAct.ActIndex + 1,
+			OptionDescription = new LocString("acts", "ARKNIGHTS_CHERNOBOG_ACT_CHERNOBOG_ACT.description")
+		});
 		foreach (Type encounterType in ActEncounterTypes)
 		{
 			registry.RegisterActEncounter(typeof(ChernobogAct), encounterType);
