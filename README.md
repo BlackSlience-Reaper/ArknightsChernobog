@@ -1,17 +1,18 @@
 # 苦难摇篮（ArknightsChernobog）
 
 《杀戮尖塔 2》第二幕变体，取材《明日方舟》主线第七章“苦难摇篮”：切尔诺伯格核心城，
-感染者游击队“盾”，Boss 固定为爱国者。经 [ActLikeIt2](https://steamcommunity.com/sharedfiles/filedetails/?id=3808369281) 在第二幕开始前与原版蜂巢一同供选择。
+感染者游击队“盾”，Boss 固定为爱国者。与原版蜂巢同属第二幕候选，开局时随机二选一；装有 [ActLikeIt2](https://steamcommunity.com/sharedfiles/filedetails/?id=3808369281) 时改为在第二幕开始前与蜂巢一同供选择。
 
 - 创意工坊：<https://steamcommunity.com/sharedfiles/filedetails/?id=3810696357>
 - 模组 ID：`ArknightsChernobog`，作者 `Natsuki`
-- 目标游戏版本：STS2 `0.111.0`，单 DLL，前置 RitsuLib（≥ 0.6.2，全部内容经它注册，见下方“结构”）与 ActLikeIt2（≥ 0.2.2，第二幕选幕）
+- 目标游戏版本：STS2 `0.111.0`，单 DLL，前置 RitsuLib（≥ 0.6.2，全部内容经它注册，见下方“结构”）；可选前置 ActLikeIt2（第二幕选幕）
 - 当前状态：幕已出现在第二幕选幕界面，战斗背景、休息处、地图底图是本幕美术；弱怪/普通/精英战斗池已换成第七章敌人（第三版设计，按兵种编组）；
   Boss 为爱国者（两阶段，带两名游击队战士护卫）；事件池是 6 个本幕事件 + 蜂巢里 3 个主题中性的事件，先古之民沿用蜂巢
 
 ## 安装
 
-推荐直接在创意工坊订阅本模组和前置 [RitsuLib](https://steamcommunity.com/sharedfiles/filedetails/?id=3747602295)（≥ 0.6.2）、[ActLikeIt2](https://steamcommunity.com/sharedfiles/filedetails/?id=3808369281)（≥ 0.2.2）。
+推荐直接在创意工坊订阅本模组和前置 [RitsuLib](https://steamcommunity.com/sharedfiles/filedetails/?id=3747602295)（≥ 0.6.2）。
+[ActLikeIt2](https://steamcommunity.com/sharedfiles/filedetails/?id=3808369281) 是可选的：装了它，第二幕开始前会出现选幕界面，可以在蜂巢和本幕之间自己选（联机时投票）；不装则本幕与蜂巢随机出现。
 手动安装：把发行包里的 `ArknightsChernobog/` 文件夹（`ArknightsChernobog.dll`、`.pck`、`.json` 三个文件）放进游戏的 `mods` 目录。
 
 ## 许可
@@ -50,7 +51,8 @@
 如幕 `ARKNIGHTS_CHERNOBOG_ACT_CHERNOBOG_ACT`、爱国者 `ARKNIGHTS_CHERNOBOG_MONSTER_REUNION_PATRIOT`；存档、联机与控制台都按它引用，不要改类名。
 
 - `src/ModEntry.cs`：注册表。`ActEncounterTypes`（战斗池）与 `ActEventTypes`（本幕事件）只往末尾追加；怪物与能力按类型全集注册。
-- `src/Acts/ChernobogAct.cs`：幕模型（`ModActTemplate`）。不进原版随机幕列表，由 `ModEntry` 经 ActLikeIt2 的 `ActRegistry.Register` 登记为第二幕选幕候选，与蜂巢并列。
+- `src/Acts/ChernobogAct.cs`：幕模型（`ModActTemplate`）。没装 ActLikeIt2 时 `AllowInRandomActList` 让 RitsuLib 把它并进原版第二幕的随机候选，与蜂巢同组；
+  装了时退出随机列表，改由 `src/Integration/ActLikeIt2Bridge.cs` 登记为它的第二幕选幕候选。桥接全程反射，不引用 ActLikeIt2.dll，构建也不需要它。
 - `src/ChernobogAssets.cs`：全部资源路径（幕背景、休息处、地图底图、Boss 节点与对局历史图标、遭遇站位场景、能力图标），与 `art/install_assets.py` 一一对应。
 - `src/Encounters/`：遭遇战基类 `ReunionEncounter`（`ModEncounterTemplate`）；`ReunionTestEncounters.cs` 与事件战斗只供控制台/事件发起，
   不注册、不进战斗池，保留原版按类名得出的 id（如 `REUNION_PATRIOT_TEST`）。

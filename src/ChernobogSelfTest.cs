@@ -70,10 +70,12 @@ internal static class ChernobogSelfTest
 
 		Check("act index group", () =>
 		{
+			// RitsuLib 按 AllowInRandomActList 过滤这一组：没装 ActLikeIt2 时本幕与蜂巢同组，装了时退出（只经选幕界面出现）。
 			IReadOnlyList<ActModel> group = ModelDb.ActsByIndex[ChernobogAct.ActIndex];
 			string names = string.Join(", ", group.Select(a => $"{a.Id.Entry}(default={a.IsDefault})"));
-			Require(group.Contains(canonical) && group[0].IsDefault, names);
-			return names;
+			bool expectInGroup = !Integration.ActLikeIt2Bridge.IsLoaded;
+			Require(group.Contains(canonical) == expectInGroup && group[0].IsDefault, $"expect in group={expectInGroup}: {names}");
+			return $"ActLikeIt2={!expectInGroup}: {names}";
 		});
 
 		Check("default list unchanged", () =>
@@ -83,28 +85,37 @@ internal static class ChernobogSelfTest
 			return names;
 		});
 
-		// 本幕不进原版随机幕列表，只经 ActLikeIt2 的第二幕选幕界面出现（见 ChernobogAct）。
-		Check("random list never rolls act", () =>
+		// ActLikeIt2 是可选前置（见 ChernobogAct）：装了它，本幕只在第二幕选幕界面出现、不进随机列表；没装时随机列表里有时抽到本幕。
+		Check("random list rolls act", () =>
 		{
+			int hits = 0;
 			const int rolls = 200;
 			for (ulong seed = 1; seed <= rolls; seed++)
 			{
 				List<ActModel> acts = ActModel.GetRandomList(new Rng(seed), UnlockState.all, isMultiplayer: true).ToList();
 				Require(acts.Count == 3, $"seed {seed} gave {acts.Count} acts");
-				Require(acts[ChernobogAct.ActIndex] != canonical, $"seed {seed} rolled {canonical.Id.Entry}");
+				if (acts[ChernobogAct.ActIndex] == canonical)
+				{
+					hits++;
+				}
 			}
 
-			return $"act 2 never {canonical.Id.Entry} in {rolls} multiplayer rolls";
+			bool viaFork = Integration.ActLikeIt2Bridge.IsLoaded;
+			Require(viaFork ? hits == 0 : hits > 0 && hits < rolls, $"ActLikeIt2={viaFork} hits={hits}");
+			return $"ActLikeIt2={viaFork}: act 2 = {canonical.Id.Entry} in {hits}/{rolls} multiplayer rolls";
 		});
 
 		Check("ActLikeIt2 fork registration", () =>
 		{
-			ActLikeIt2.ActRegistration? registration = ActLikeIt2.ActRegistry.GetRegistrationsForSlot(ChernobogAct.ActIndex + 1)
-				.SingleOrDefault(r => r.CanonicalAct == canonical);
-			Require(registration != null, $"{canonical.Id.Entry} not registered for act {ChernobogAct.ActIndex + 1}");
-			string description = registration!.OptionDescription?.GetFormattedText() ?? "";
-			Require(description.Length > 0 && !description.Contains(".description"), $"description '{description}'");
-			return $"act {registration.ActNumber}: {description}";
+			if (!Integration.ActLikeIt2Bridge.IsLoaded)
+			{
+				return "ActLikeIt2 not loaded (optional); skipped";
+			}
+
+			string? description = Integration.ActLikeIt2Bridge.RegisteredOptionDescription();
+			Require(description != null, $"{canonical.Id.Entry} not registered for act {Integration.ActLikeIt2Bridge.ActNumber}");
+			Require(description!.Length > 0 && !description.Contains(".description"), $"description '{description}'");
+			return $"act {Integration.ActLikeIt2Bridge.ActNumber}: {description}";
 		});
 
 		Check("generate rooms", () =>

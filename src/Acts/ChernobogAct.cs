@@ -12,8 +12,10 @@ namespace ArknightsChernobog.Acts;
 /// <summary>
 /// 第二幕变体“摇篮”，取材主线第七章“苦难摇篮”，场景为切尔诺伯格核心城，Boss 固定为爱国者。
 /// 经 RitsuLib 注册（ModEntry），模型 id 为 ARKNIGHTS_CHERNOBOG_ACT_CHERNOBOG_ACT，存档、联机开局和 `act` 控制台命令都按它引用，改类名等于换一个幕。
-/// - 选幕：经 ActLikeIt2 注册为第二幕选幕界面的候选（ModEntry），与原版第二幕（蜂巢）并列由玩家选择或联机投票；
-///   不进原版随机幕列表，否则本局第二幕被抽成本幕时，选幕界面会把它当作原版选项、蜂巢就不再出现。
+/// - 选幕：ActLikeIt2 是可选前置（见 <see cref="Integration.ActLikeIt2Bridge"/>）。装了它，本幕登记为第二幕选幕界面的候选，
+///   与原版第二幕（蜂巢）并列由玩家选择或联机投票，并退出原版随机幕列表——否则本局第二幕被抽成本幕时，
+///   选幕界面会把它当作原版选项、蜂巢就不再出现。没装时经 RitsuLib 进原版按序号分组的随机幕列表，与蜂巢随机二选一；
+///   非默认幕在单人模式下未发现过时会被原版强制选中一次（与暗港相同），之后均匀随机。
 /// - 资源：背景、休息处、地图底图都在模组命名空间，经 AssetProfile 接到原版取路径的地方（见 <see cref="ChernobogAssets"/>）。
 /// - 内容：遭遇战与本幕事件经 RitsuLib 按幕注册（ModEntry），这里只列复用的原版事件与先古之民。
 /// </summary>
@@ -27,7 +29,8 @@ public sealed class ChernobogAct : ModActTemplate
 
 	public override bool IsDefault => false;
 
-	public override bool AllowInRandomActList => false;
+	// RitsuLib 在 ModelDb.ActsByIndex 的取值补丁里每次现读，开局时全部模组早已加载，按 ActLikeIt2 在不在现判即可。
+	public override bool AllowInRandomActList => !Integration.ActLikeIt2Bridge.IsLoaded;
 
 	public override ActAssetProfile AssetProfile => ChernobogAssets.ActProfile;
 

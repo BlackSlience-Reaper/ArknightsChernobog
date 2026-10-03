@@ -5,9 +5,9 @@
     <RootNamespace>ArknightsChernobog</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.1.1</Version>
-    <AssemblyVersion>0.1.1.0</AssemblyVersion>
-    <FileVersion>0.1.1.0</FileVersion>
+    <Version>0.1.2</Version>
+    <AssemblyVersion>0.1.2.0</AssemblyVersion>
+    <FileVersion>0.1.2.0</FileVersion>
     <ChernobogSts2Target Condition="'$(ChernobogSts2Target)' == ''">0.111.0</ChernobogSts2Target>
     <SteamAppsDir Condition="'$(SteamAppsDir)' == ''">$(HOME)/Library/Application Support/Steam/steamapps</SteamAppsDir>
     <!-- 游戏程序集：开发工作区里按版本存档的引用优先（可跨版本构建），没有时用本机游戏安装目录；也可以直接传 GameDataDir。 -->
@@ -17,8 +17,6 @@
     <!-- 前置 RitsuLib（本幕事件与诅咒经它注册）；引用取创意工坊安装目录里与目标游戏版本对应的 compat 变体。 -->
     <RitsuLibRoot Condition="'$(RitsuLibRoot)' == ''">$(SteamAppsDir)/workshop/content/2868840/3747602295</RitsuLibRoot>
     <RitsuLibReferenceTarget>$(ChernobogSts2Target)</RitsuLibReferenceTarget>
-    <!-- 前置 ActLikeIt2（第二幕选幕界面经它注册）；引用取创意工坊安装目录。 -->
-    <ActLikeIt2Root Condition="'$(ActLikeIt2Root)' == ''">$(SteamAppsDir)/workshop/content/2868840/3808369281</ActLikeIt2Root>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,10 +30,6 @@
     </Reference>
     <Reference Include="0Harmony">
       <HintPath>$(GameDataDir)/0Harmony.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ActLikeIt2">
-      <HintPath>$(ActLikeIt2Root)/ActLikeIt2.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
