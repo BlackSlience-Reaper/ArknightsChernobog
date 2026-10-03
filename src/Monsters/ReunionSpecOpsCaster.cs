@@ -35,9 +35,9 @@ public sealed class ReunionSpecOpsCaster : ReunionMonster
 
 	private int PlatingAmount => ToughValue(5, 4);
 
-	private int BlastDamage => DeadlyValue(11, 10);
+	private int BlastDamage => DeadlyValue(9, 8);
 
-	private int CorrosionDamage => DeadlyValue(8, 7);
+	private int CorrosionDamage => DeadlyValue(7, 6);
 
 	private int BarrierBlock => ToughValue(14, 12);
 

@@ -43,7 +43,7 @@ public sealed class ReunionGuerrillaHoundPro : ReunionMonster
 
 	private int HowlStrength => DeadlyValue(3, 2);
 
-	private int PackFury => DeadlyValue(4, 3);
+	private int PackFury => DeadlyValue(3, 2);
 
 	public override async Task AfterAddedToRoom()
 	{

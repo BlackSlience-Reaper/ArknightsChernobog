@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 namespace ArknightsChernobog.Monsters;
 
 /// <summary>
-/// 普通宿主（梅菲斯特牧群里带永续再生的一族）的公共部分：开场挂永续再生和残存（<see cref="ReunionHostRemnantPower"/>），
+/// 普通宿主（梅菲斯特牧群里带永续再生的一族）的公共部分：开场挂永续再生和残存（<see cref="ReunionHostRemnantPower"/>，弱怪版不挂，见 <see cref="HasRemnant"/>），
 /// 被击倒时只要还有其他宿主活着，就倒地一回合、下一回合重新站起并挂回永续再生，然后从 <c>resume</c> 招式接着打。
 /// 狂暴宿主不在这一族：它们总是单独出场，残存永远不会触发，用的是瓦解而不是再生。
 /// 骨骼都没有复活动画，站起时直接切回 Idle。
@@ -23,6 +23,22 @@ public abstract class ReunionHostMonster : ReunionMonster, IReunionRevivable
 	private const string ReviveTrigger = "Revive";
 
 	private MoveState? _downedState;
+
+	private bool _hasRemnant = true;
+
+	/// <summary>
+	/// 是否挂残存。弱怪版牧群关掉：没有群体伤害的卡组在第二幕前几场也能一个个打掉，倒地站起只留给普通版。
+	/// 和起手偏移一样由遭遇战在 ConfigureMonsters 里设置，怪物加入战斗时才读。
+	/// </summary>
+	public bool HasRemnant
+	{
+		get => _hasRemnant;
+		set
+		{
+			AssertMutable();
+			_hasRemnant = value;
+		}
+	}
 
 	/// <summary>永续再生层数。</summary>
 	protected abstract int HostRegen { get; }
@@ -44,7 +60,10 @@ public abstract class ReunionHostMonster : ReunionMonster, IReunionRevivable
 	{
 		await base.AfterAddedToRoom();
 		await ApplyHostRegen(HostRegen);
-		await ApplyPower<ReunionHostRemnantPower>([Creature], ReviveHp);
+		if (HasRemnant)
+		{
+			await ApplyPower<ReunionHostRemnantPower>([Creature], ReviveHp);
+		}
 	}
 
 	/// <summary>子类建好正常招式循环后用它代替 <see cref="ReunionMonster.Machine"/>：补上“倒地 → 重新站起 → <paramref name="resume"/>”。</summary>

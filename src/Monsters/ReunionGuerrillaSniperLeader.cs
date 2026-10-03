@@ -35,9 +35,9 @@ public sealed class ReunionGuerrillaSniperLeader : ReunionMonster
 
 	public override DamageSfxType TakeDamageSfxType => DamageSfxType.Fur;
 
-	private int ShotDamage => DeadlyValue(12, 11);
+	private int ShotDamage => DeadlyValue(10, 9);
 
-	private int DoubleShotDamage => DeadlyValue(6, 5);
+	private int DoubleShotDamage => DeadlyValue(5, 4);
 
 	protected override MonsterMoveStateMachine GenerateMoveStateMachine()
 	{

@@ -13,7 +13,8 @@ namespace ArknightsChernobog.Encounters;
 // 或者一对有明确机制关系的兵（盾卫掩护炮手、术师献祭强化战士）；同一群怪有弱怪版和普通版，打同一个遭遇标签。
 // 名字取自第七章关卡与剧情，不再按关卡出兵表凑队。萨卡兹雇佣军是游击队萨卡兹的换皮，不进池。
 // 数值跟着遭遇走（同一兵种只出现在一两场），组成、总血量与对照原版的难度见 docs/战斗设计.md。
-// 起手偏移（SetOpenings）由 docs/tools/opening_sim.py 按原版蜂巢的开局伤害区间算出，改阵容或数值后要重跑。
+// 起手偏移（SetOpenings）由 docs/tools/opening_sim.py --search 挑出：对齐原版蜂巢同类型遭遇战的平均开局伤害
+// （docs/tools/vanilla_hive.py），不是对齐原版的最高值；改阵容或数值后要重跑，并同步模拟器里的 OPENINGS。
 // 同一场里的同种怪起手一律错开（模拟器里是硬约束），战斗中召来的增援也按同一原则挑起手。
 
 // ---- 弱怪 ----
@@ -32,7 +33,10 @@ public sealed class ReunionHoundPackWeak : ReunionEncounter
 	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1);
 }
 
-/// <summary>7-3 变节之刃：失控的牧群，宿主士兵 ×2（一劈砍一猛扑起手、之后随机出招），永续再生 + 残存（普通版见 <see cref="ReunionHostHerdNormal"/>）。</summary>
+/// <summary>
+/// 7-3 变节之刃：失控的牧群，宿主士兵 ×2（一劈砍一溃烂撕咬起手、之后随机出招），只带永续再生、不带残存：
+/// 弱怪战在第二幕最先遇到，不该要求群体伤害（普通版见 <see cref="ReunionHostHerdNormal"/>）。
+/// </summary>
 public sealed class ReunionHostStragglersWeak : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -43,7 +47,14 @@ public sealed class ReunionHostStragglersWeak : ReunionEncounter
 
 	protected override IReadOnlyList<MonsterModel> Lineup => [M<ReunionHostSoldier>(), M<ReunionHostSoldier>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters)
+	{
+		SetOpenings(monsters, 0, 2);
+		foreach (ReunionHostMonster host in monsters.OfType<ReunionHostMonster>())
+		{
+			host.HasRemnant = false;
+		}
+	}
 }
 
 /// <summary>单个突袭战士：起飞 ↔ 降落重击（普通版见 <see cref="ReunionParatroopersNormal"/>）。</summary>
@@ -75,7 +86,7 @@ public sealed class ReunionSpecOpsRemnantsWeak : ReunionEncounter
 // ---- 普通 ----
 
 /// <summary>
-/// 猎犬群：猎犬pro 带两只猎犬（猎犬pro 首回合嚎叫强化自己；两只猎犬一扑咬一撕咬起手，之后随机出招）。
+/// 猎犬群：猎犬pro 带两只猎犬（猎犬pro 首回合嚎叫强化自己；两只猎犬一撕咬一环伺起手，之后随机出招）。
 /// 猎犬pro 站最右、最后出手：出手顺序就是站位顺序。嚎叫原来给全体加力量，它若先出手，两只猎犬本回合已亮出的意图会在出手前涨伤害，
 /// 玩家按意图算的伤害就不准了；现在只加自己，站最右仍保留。
 /// </summary>
@@ -88,12 +99,13 @@ public sealed class ReunionHoundPackNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaHound>(), M<ReunionGuerrillaHound>(), M<ReunionGuerrillaHoundPro>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1, 2);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 1, 2, 2);
 }
 
 /// <summary>
 /// 7-2 别离之夜：梅菲斯特的牧群。宿主士兵组长固定，再从宿主士兵、拾荒者、流浪者里不重复地抽两只（照原版碗虫）。
-/// 组长先牧群号令（弃牌堆塞晕眩），三种普通宿主随机出招；宿主士兵的残存在这里也生效（其他宿主活着就会站起来）。
+/// 组长先牧群号令（弃牌堆塞晕眩），拾荒者、流浪者先撕扯、嘶吼，宿主士兵先劈砍，之后随机出招；
+/// 残存在这里生效（其他宿主活着就会站起来）。
 /// </summary>
 public sealed class ReunionHostHerdNormal : ReunionEncounter
 {
@@ -117,10 +129,11 @@ public sealed class ReunionHostHerdNormal : ReunionEncounter
 	}
 
 	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) =>
-		SetOpeningsByType(monsters, (typeof(ReunionHostSoldierLeader), 1));
+		SetOpeningsByType(monsters,
+			(typeof(ReunionHostSoldierLeader), 1), (typeof(ReunionHostScavenger), 1), (typeof(ReunionHostWanderer), 1));
 }
 
-/// <summary>7-3 变节之刃：狂暴宿主单体，士兵或投掷手随机一个。高血高瓦解，以防御为主撑到它自己倒下。</summary>
+/// <summary>7-3 变节之刃：狂暴宿主单体，士兵或投掷手随机一个（士兵先撕裂）。高血高瓦解，以防御为主撑到它自己倒下。</summary>
 public sealed class ReunionRagingHostNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -128,9 +141,12 @@ public sealed class ReunionRagingHostNormal : ReunionEncounter
 	protected override IEnumerable<MonsterModel> Candidates => [M<ReunionRagingHostSoldier>(), M<ReunionRagingHostThrower>()];
 
 	protected override IReadOnlyList<MonsterModel> RollLineup(Rng rng) => [rng.NextItem(Candidates)!];
+
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) =>
+		SetOpeningsByType(monsters, (typeof(ReunionRagingHostSoldier), 1));
 }
 
-/// <summary>7-2 别离之夜：特战士兵 + 特战术师 + 法术大师A1（特战士兵先隐蔽）。</summary>
+/// <summary>7-2 别离之夜：特战士兵 + 特战术师 + 法术大师A1（特战士兵先隐蔽、特战术师先源石屏障）。</summary>
 public sealed class ReunionSpecOpsTeamNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -140,10 +156,10 @@ public sealed class ReunionSpecOpsTeamNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionSpecOpsSoldier>(), M<ReunionSpecOpsCaster>(), M<ReunionArtsMaster>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 0, 0);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 2, 0);
 }
 
-/// <summary>7-4/7-5 并肩之约：游击队突击组，战士组长带两名战士，督战给玩家脆弱（组长先劈砍，两名战士分别从冲锋、压制起手）。</summary>
+/// <summary>7-4/7-5 并肩之约：游击队突击组，战士组长带两名战士，督战给玩家脆弱（组长先督战，两名战士分别从劈砍、压制起手）。</summary>
 public sealed class ReunionAssaultSquadNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -151,10 +167,10 @@ public sealed class ReunionAssaultSquadNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaFighterLeader>(), M<ReunionGuerrillaFighter>(), M<ReunionGuerrillaFighter>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1, 2);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 0, 2);
 }
 
-/// <summary>7-5 并肩之约：狙击阵地，狙击手组长带两名狙击手，标定目标给玩家易伤（第二名狙击手先瞄准）。</summary>
+/// <summary>7-5 并肩之约：狙击阵地，狙击手组长带两名狙击手，标定目标给玩家易伤（组长先标定目标，第二名狙击手先瞄准）。</summary>
 public sealed class ReunionSniperNestNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -162,10 +178,10 @@ public sealed class ReunionSniperNestNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaSniperLeader>(), M<ReunionGuerrillaSniper>(), M<ReunionGuerrillaSniper>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 0, 2);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 1, 0, 2);
 }
 
-/// <summary>7-13/7-14 炮击阵地：盾卫掩护迫击炮兵（照原版活体盾牌 + 高塔炮手），不先拆盾卫炮兵每回合都有格挡（炮兵先急速射）。</summary>
+/// <summary>7-13/7-14 炮击阵地：盾卫掩护迫击炮兵（照原版活体盾牌 + 高塔炮手），不先拆盾卫炮兵每回合都有格挡（盾卫先盾击，炮兵先装填）。</summary>
 public sealed class ReunionMortarPositionNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -173,10 +189,10 @@ public sealed class ReunionMortarPositionNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaShieldGuard>(), M<ReunionGuerrillaMortarGunner>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 2);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 1, 0);
 }
 
-/// <summary>7-11/7-12 浸染：萨卡兹战士 + 萨卡兹术师，各自献祭、强化自己（战士从第二次斩击起手，术师先献祭）。</summary>
+/// <summary>7-11/7-12 浸染：萨卡兹战士 + 萨卡兹术师，各自献祭、强化自己（战士先仪式强化，术师先源石洪流）。</summary>
 public sealed class ReunionInfectionNormal : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Monster;
@@ -184,7 +200,7 @@ public sealed class ReunionInfectionNormal : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaSarkazWarrior>(), M<ReunionGuerrillaSarkazCaster>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 1, 1);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 2);
 }
 
 /// <summary>7-15 游击-2：空降小队，突袭战士 ×2，第二名先起飞，两次降落重击错开。</summary>
@@ -218,6 +234,9 @@ public sealed class ReunionReinforcementsNormal : ReunionEncounter
 
 	protected override IReadOnlyList<string> LineupSlots =>
 		[ReunionGuerrillaHeraldLeader.FrontSlot, ReunionGuerrillaHeraldLeader.HeraldSlot];
+
+	// 前排战士先压制（传令兵组长固定先呼叫增援）。
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 0);
 }
 
 // ---- 事件战斗（不进任何战斗池，只由事件发起） ----
@@ -234,7 +253,7 @@ public sealed class ReunionSupplyAmbushEvent : ReunionEncounter
 
 // ---- 精英 ----
 
-/// <summary>7-13/7-17 感染者之盾：盾卫组长掩护迫击炮兵组长（炮兵组长先急速射）。</summary>
+/// <summary>7-13/7-17 感染者之盾：盾卫组长掩护迫击炮兵组长（盾卫组长先盾墙，炮兵组长先炮击）。</summary>
 public sealed class ReunionShieldOfInfectedElite : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Elite;
@@ -242,7 +261,7 @@ public sealed class ReunionShieldOfInfectedElite : ReunionEncounter
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaShieldGuardLeader>(), M<ReunionGuerrillaMortarGunnerLeader>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 2);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 1);
 }
 
 /// <summary>7-15 游击-2：垂直打击，突袭战士组长先降落重击，突袭战士先起飞，两次重击错开。</summary>
@@ -256,13 +275,15 @@ public sealed class ReunionVerticalStrikeElite : ReunionEncounter
 	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1);
 }
 
-/// <summary>7-17 感染者之盾-2 / H7-3：萨卡兹战士组长 + 萨卡兹术师组长的仪式。</summary>
+/// <summary>7-17 感染者之盾-2 / H7-3：萨卡兹战士组长 + 萨卡兹术师组长的仪式（战士组长先仪式强化，术师组长先源石洪流）。</summary>
 public sealed class ReunionSarkazRitualElite : ReunionEncounter
 {
 	public override RoomType RoomType => RoomType.Elite;
 
 	protected override IReadOnlyList<MonsterModel> Lineup =>
 		[M<ReunionGuerrillaSarkazWarriorLeader>(), M<ReunionGuerrillaSarkazCasterLeader>()];
+
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 2, 2);
 }
 
 /// <summary>7-3 变节之刃：狂暴宿主组长单体，开局就处决；血最厚、瓦解最高，防住就赢。</summary>
@@ -317,5 +338,5 @@ public sealed class ReunionPatriotBoss : ReunionEncounter
 	// 空降兵只在重生时召唤，列进 AllPossibleMonsters 供图鉴与自检；预载靠 AssetProfile 的额外路径。
 	protected override IEnumerable<MonsterModel> Candidates => [.. Lineup, M<ReunionGuerrillaAssaulter>()];
 
-	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 1, 0);
+	protected override void ConfigureMonsters(IReadOnlyList<MonsterModel> monsters) => SetOpenings(monsters, 0, 2, 0);
 }

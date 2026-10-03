@@ -35,9 +35,9 @@ public sealed class ReunionSpecOpsSoldier : ReunionMonster
 
 	public override DamageSfxType TakeDamageSfxType => DamageSfxType.Armor;
 
-	private int AmbushDamage => DeadlyValue(15, 14);
+	private int AmbushDamage => DeadlyValue(12, 11);
 
-	private int TwinStabDamage => DeadlyValue(7, 6);
+	private int TwinStabDamage => DeadlyValue(6, 5);
 
 	public override async Task AfterAddedToRoom()
 	{

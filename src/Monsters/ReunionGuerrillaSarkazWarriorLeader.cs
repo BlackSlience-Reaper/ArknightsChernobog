@@ -34,7 +34,7 @@ public sealed class ReunionGuerrillaSarkazWarriorLeader : ReunionMonster
 
 	public override DamageSfxType TakeDamageSfxType => DamageSfxType.Armor;
 
-	private int CleaveDamage => DeadlyValue(16, 15);
+	private int CleaveDamage => DeadlyValue(15, 14);
 
 	private int EmpowerStrength => DeadlyValue(5, 4);
 

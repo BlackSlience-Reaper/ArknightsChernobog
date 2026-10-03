@@ -42,7 +42,7 @@ public sealed class ReunionGuerrillaSarkazCasterLeader : ReunionMonster
 
 	private int ArtsBoltDamage => DeadlyValue(12, 11);
 
-	private int TorrentDamage => DeadlyValue(6, 5);
+	private int TorrentDamage => DeadlyValue(5, 4);
 
 	private int RitualStrength => DeadlyValue(4, 3);
 

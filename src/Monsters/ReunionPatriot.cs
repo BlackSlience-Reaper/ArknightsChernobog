@@ -101,15 +101,15 @@ public sealed class ReunionPatriot : ReunionMonster, IReunionRebirth
 
 	private int MarchBlock => ToughValue(12, 10);
 
-	private int FlurryDamage => DeadlyValue(5, 4);
+	private int FlurryDamage => DeadlyValue(4, 3);
 
-	private int RamDamage => DeadlyValue(18, 16);
+	private int RamDamage => DeadlyValue(16, 14);
 
 	private int WrathAmount => DeadlyValue(3, 2);
 
 	private int SweepDamage => DeadlyValue(9, 8);
 
-	private int JavelinDamage => DeadlyValue(29, 26);
+	private int JavelinDamage => DeadlyValue(26, 23);
 
 	private int WarCryStrength => DeadlyValue(4, 3);
 

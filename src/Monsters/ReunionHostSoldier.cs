@@ -13,7 +13,7 @@ namespace ArknightsChernobog.Monsters;
 /// 宿主士兵（PRTS enemy_1043_zomsabr，资源目录 enemy_1043_zomsbr），梅菲斯特“牧群”的普通单位（7-2/7-3）。
 /// PRTS 定位：被不明意识控制身体的士兵，能快速自然恢复生命。
 /// 动画：Idle / Attack（OnAttack 0.4s）/ Die；Run_Loop 未用。
-/// 招式与数值见 docs/战斗设计.md：永续再生 + 残存（见 <see cref="ReunionHostMonster"/>），劈砍、猛扑（两段）、溃烂撕咬（弃牌堆塞伤口）三招随机、不连用，站起后照常随机。
+/// 招式与数值见 docs/战斗设计.md：永续再生 + 残存（见 <see cref="ReunionHostMonster"/>；弱怪版“失控的牧群”不带残存），劈砍、猛扑（两段）、溃烂撕咬（弃牌堆塞伤口）三招随机、不连用，站起后照常随机。
 /// </summary>
 public sealed class ReunionHostSoldier : ReunionHostMonster
 {

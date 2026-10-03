@@ -1,63 +1,81 @@
-"""苦难摇篮遭遇战的开局伤害模拟：按招式算前 N 个敌方回合玩家要承受的伤害，并为每个怪挑起手位置。
+"""苦难摇篮遭遇战的开局伤害，与原版蜂巢（vanilla_hive.py）同一口径对照（引擎与口径见 sim_core.py）。
 
-口径（普通难度，玩家不减伤、不打死任何怪）：
-- 攻击伤害 =（基础 + 自身力量 + 领袖气质）× 段数；玩家带易伤时每段 ×1.5 向下取整。
-- 领袖气质：持有者之外的盟友每段 +层数（原版 LeadershipPower）。
-- 易伤在敌方回合结束时掉 1 层：本回合后出手的怪与之后 (层数-1) 个敌方回合生效。
-- 固定循环的怪按表中顺序出招；RANDOM 里的怪第一招按起手取，之后每回合从其余招式里任选一招（不连用同一招，照原版外骨骼虫）。
-  随机怪把所有可能的出招序列都走一遍，每回合取最差值（逐回合最大伤害），按这个最差结果打分。
-- 召唤：招式效果 summon 在队尾加一名怪（最多 SUMMON_CAP 名），从下一个敌方回合起出手（原版刚召唤的怪当回合不行动），
-  起手用场上第一只同种怪本回合出的招（与游戏里传令兵组长的做法一致）。
-- 同一场里的同种怪起手必须不同（硬约束）。
-- 出手顺序 = 阵容顺序，召唤的怪排在最后。
-- 随机阵容：按怪物种类（而不是站位）挑起手，取所有可能组合里最差的一组来判超标。
-- 不再有“给其他盟友加力量”的招式（会让后出手的怪意图在本回合里涨伤害，玩家按意图算的伤害就不准）；
-  格挡、削弱玩家、塞状态牌不影响敌方出伤，模拟里记为空效果。
-参照原版蜂巢（普通难度）第 1 回合：弱怪约 12–22，普通 0–25（常见 10–16），精英约 15–24。
+用法：
+  python3 opening_sim.py          逐场列出 A0 / A10 的期望与最大值，并和原版蜂巢同类型的均值对照
+  python3 opening_sim.py --search 为每场重新挑起手位置（按下面的 TARGET 打分），改阵容或数值后用
+
+起手写在 OPENINGS 里，必须与 src/Encounters/ChernobogEncounters.cs 的 SetOpenings 一致（值 = 招式序号，即 OpeningOffset）。
+随机出招的怪（RandomMachine）第一招取 moves[偏移]，之后在其余招里等权随机、不连用。
 """
+import sys
 from itertools import combinations, product
 
-# 招式：(名称, 单段伤害, 段数, 效果)；效果键 self_str / vuln / summon。
-M = {
-    "猎犬": [("扑咬", 4, 2, {}), ("撕咬", 7, 1, {}), ("环伺", 0, 0, {"self_str": 1})],
-    "猎犬pro": [("扑咬", 5, 2, {}), ("撕咬", 8, 1, {}), ("嚎叫", 0, 0, {"self_str": 2})],
-    "战士": [("劈砍", 9, 1, {}), ("全力冲锋", 6, 1, {"self_str": 2}), ("压制", 5, 1, {})],
-    "战士组长": [("劈砍", 11, 1, {}), ("全力冲锋", 7, 1, {"self_str": 2}), ("督战", 0, 0, {})],
-    "狙击手": [("狙击", 9, 1, {}), ("狙击", 9, 1, {}), ("瞄准", 0, 0, {"self_str": 2})],
-    "狙击手组长": [("狙击", 11, 1, {}), ("标定目标", 0, 0, {"vuln": 1}), ("双重狙击", 5, 2, {})],
-    "传令兵组长": [("呼叫增援", 0, 0, {"summon": "战士"}), ("殴打", 8, 1, {}), ("战旗", 0, 0, {})],
-    "盾卫": [("推进", 9, 1, {}), ("盾击", 15, 1, {}), ("盾墙", 0, 0, {})],
-    "盾卫组长": [("推进", 10, 1, {}), ("盾击", 15, 1, {}), ("盾墙", 0, 0, {})],
-    "迫击炮兵": [("装填", 0, 0, {}), ("炮击", 16, 1, {}), ("急速射", 4, 3, {})],
-    "迫击炮兵组长": [("装填", 0, 0, {}), ("炮击", 22, 1, {}), ("急速射", 5, 3, {})],
-    "突袭战士": [("降落重击", 16, 1, {}), ("起飞", 0, 0, {"self_str": 2})],
-    "突袭战士组长": [("降落重击", 18, 1, {}), ("起飞", 0, 0, {"self_str": 3})],
-    "萨卡兹战士": [("斩击", 14, 1, {}), ("斩击", 14, 1, {}), ("仪式强化", 0, 0, {"self_str": 3})],
-    "萨卡兹战士组长": [("斩击", 15, 1, {}), ("斩击", 15, 1, {}), ("仪式强化", 0, 0, {"self_str": 4})],
-    "萨卡兹术师": [("源石法术", 9, 1, {}), ("献祭仪式", 0, 0, {"self_str": 3}), ("源石洪流", 3, 3, {})],
-    "萨卡兹术师组长": [("源石法术", 11, 1, {}), ("献祭仪式", 0, 0, {"self_str": 3}), ("源石洪流", 5, 3, {})],
-    "宿主士兵": [("劈砍", 9, 1, {}), ("猛扑", 5, 2, {}), ("溃烂撕咬", 6, 1, {})],
-    "宿主拾荒者": [("乱砸", 8, 1, {}), ("撕扯", 5, 1, {}), ("翻找", 0, 0, {"self_str": 1})],
-    "宿主流浪者": [("重击", 9, 1, {}), ("嘶吼", 0, 0, {"self_str": 2}), ("蹒跚冲撞", 6, 1, {})],
-    "宿主士兵组长": [("劈砍", 8, 1, {}), ("牧群号令", 0, 0, {}), ("连斩", 4, 2, {})],
-    "狂暴宿主士兵": [("狂斩", 7, 3, {}), ("撕裂", 18, 1, {}), ("狂嚎", 0, 0, {"self_str": 3})],
-    "狂暴宿主投掷手": [("投掷", 14, 1, {}), ("乱掷", 5, 3, {}), ("砸石", 8, 1, {})],
-    "狂暴宿主组长": [("狂暴连斩", 9, 3, {}), ("狂乱之嚎", 0, 0, {"self_str": 2}), ("处决", 26, 1, {})],
-    "特战士兵": [("伏击", 14, 1, {}), ("连刺", 6, 2, {}), ("隐蔽", 0, 0, {})],
-    "特战术师": [("源石冲击", 10, 1, {}), ("腐蚀法术", 7, 1, {}), ("源石屏障", 0, 0, {})],
-    "法术大师A1": [("法术射线", 3, 3, {}), ("法术射线", 3, 3, {}), ("超载", 0, 0, {"self_str": 2})],
-    # 爱国者一阶段（二阶段在重生之后，开局 4 回合内打不到）。残甲只影响玩家打它，不影响它的出伤。
-    "爱国者": [("行军", 0, 0, {}), ("长戟四连", 4, 4, {}), ("盾击", 16, 1, {})],
-}
-# 随机出招的怪（代码里用 ReunionMonster.RandomMachine / ReunionHostMonster.HostRandomMachine）。
-RANDOM = {"猎犬", "宿主士兵", "宿主拾荒者", "宿主流浪者", "狂暴宿主士兵", "狂暴宿主投掷手"}
-LEADERSHIP = {"传令兵组长": 3}
-SUMMON_CAP = 2
-# 固定起手：组长空降兵先降落；传令兵组长先呼叫增援（同原版卵翼虫开场下蛋）。
-FIXED = {"突袭战士组长": [0], "传令兵组长": [0]}
+from sim_core import V, Move, Kind, cycle, random_kind, simulate, summarize
+import vanilla_hive
 
+A = Move  # 简写
+
+
+def fixed(*moves):
+    return ("cycle", moves)
+
+
+def rand(*moves):
+    return ("random", moves)
+
+
+# 招式：(招式名, Move)。数值 (A0, A10)，与 src/Monsters 的 DeadlyValue(A10, A0) 一致。
+M = {
+    "猎犬": rand(("扑咬", A(V(4, 5), 2)), ("撕咬", A(V(7, 8), 1)), ("环伺", A(self_str=V(1)))),
+    "猎犬pro": fixed(("扑咬", A(V(5, 6), 2)), ("撕咬", A(V(8, 9), 1)), ("嚎叫", A(self_str=V(2, 3)))),
+    "战士": fixed(("劈砍", A(V(8, 9), 1)), ("全力冲锋", A(V(6, 7), 1, self_str=V(2))), ("压制", A(V(5, 6), 1))),
+    "战士组长": fixed(("劈砍", A(V(10, 11), 1)), ("全力冲锋", A(V(7, 8), 1, self_str=V(2))), ("督战", A())),
+    "狙击手": fixed(("狙击", A(V(7, 8), 1)), ("狙击2", A(V(7, 8), 1)), ("瞄准", A(self_str=V(2, 3)))),
+    "狙击手组长": fixed(("狙击", A(V(9, 10), 1)), ("标定目标", A(vuln=1)), ("双重狙击", A(V(4, 5), 2))),
+    "传令兵组长": fixed(("呼叫增援", A(summon="战士")), ("殴打", A(V(8, 9), 1)), ("战旗", A())),
+    "盾卫": fixed(("推进", A(V(9, 10), 1)), ("盾击", A(V(15, 16), 1)), ("盾墙", A())),
+    "盾卫组长": fixed(("推进", A(V(10, 11), 1)), ("盾击", A(V(15, 16), 1)), ("盾墙", A())),
+    "迫击炮兵": fixed(("装填", A()), ("炮击", A(V(16, 18), 1)), ("急速射", A(V(4, 5), 3))),
+    "迫击炮兵组长": fixed(("装填", A()), ("炮击", A(V(20, 22), 1)), ("急速射", A(V(5, 6), 3))),
+    "突袭战士": fixed(("降落重击", A(V(16, 17), 1)), ("起飞", A(self_str=V(2, 3)))),
+    "突袭战士组长": fixed(("降落重击", A(V(18, 20), 1)), ("起飞", A(self_str=V(3, 4)))),
+    "萨卡兹战士": fixed(("斩击", A(V(12, 13), 1)), ("斩击2", A(V(12, 13), 1)), ("仪式强化", A(self_str=V(3, 4)))),
+    "萨卡兹术师": fixed(("源石法术", A(V(9, 10), 1)), ("献祭仪式", A(self_str=V(3, 4))), ("源石洪流", A(V(3, 4), 3))),
+    "萨卡兹战士组长": fixed(("斩击", A(V(14, 15), 1)), ("斩击2", A(V(14, 15), 1)), ("仪式强化", A(self_str=V(4, 5)))),
+    "萨卡兹术师组长": fixed(("源石法术", A(V(11, 12), 1)), ("献祭仪式", A(self_str=V(3, 4))), ("源石洪流", A(V(4, 5), 3))),
+    "宿主士兵": rand(("劈砍", A(V(9, 10), 1)), ("猛扑", A(V(5, 6), 2)), ("溃烂撕咬", A(V(6, 7), 1))),
+    "宿主拾荒者": rand(("乱砸", A(V(8, 9), 1)), ("撕扯", A(V(5, 6), 1)), ("翻找", A(self_str=V(1)))),
+    "宿主流浪者": rand(("重击", A(V(9, 10), 1)), ("嘶吼", A(self_str=V(2, 3))), ("蹒跚冲撞", A(V(6, 7), 1))),
+    "宿主士兵组长": fixed(("劈砍", A(V(8, 9), 1)), ("牧群号令", A()), ("连斩", A(V(4, 5), 2))),
+    "狂暴宿主士兵": rand(("狂斩", A(V(7, 8), 3)), ("撕裂", A(V(18, 20), 1)), ("狂嚎", A(self_str=V(3, 4)))),
+    "狂暴宿主投掷手": rand(("投掷", A(V(14, 15), 1)), ("乱掷", A(V(5, 6), 3)), ("砸石", A(V(8, 9), 1))),
+    "狂暴宿主组长": fixed(("狂暴连斩", A(V(9, 10), 3)), ("狂乱之嚎", A(self_str=V(2, 3))), ("处决", A(V(26, 28), 1))),
+    "特战士兵": fixed(("伏击", A(V(11, 12), 1)), ("连刺", A(V(5, 6), 2)), ("隐蔽", A())),
+    "特战术师": fixed(("源石冲击", A(V(8, 9), 1)), ("腐蚀法术", A(V(6, 7), 1)), ("源石屏障", A())),
+    "法术大师A1": fixed(("法术射线", A(V(3, 4), 3)), ("法术射线2", A(V(3, 4), 3)), ("超载", A(self_str=V(2, 3)))),
+    # 爱国者一阶段（二阶段在重生之后，开局 4 回合内打不到）。残甲只影响玩家打它，不影响它的出伤。
+    "爱国者": fixed(("行军", A()), ("长戟四连", A(V(3, 4), 4)), ("盾击", A(V(14, 16), 1))),
+}
+LEADERSHIP = {"传令兵组长": V(2, 3)}
+SUMMON_CAP = {"传令兵组长": 2}
+
+
+def build_kinds() -> dict:
+    kinds = {}
+    for name, (mode, moves) in M.items():
+        kw = {"leadership": LEADERSHIP.get(name, (0, 0)), "summon_cap": SUMMON_CAP.get(name, 0)}
+        if name in SUMMON_CAP:
+            # 与游戏里一致：召来的战士起手用场上第一只战士本回合出的招。
+            kw["summon_start"] = lambda mons, kind: next((m.history[-1] for m in mons if m.kind == kind and m.history),
+                                                         M[kind][1][0][0])
+        kinds[name] = (random_kind if mode == "random" else cycle)(list(moves), **kw)
+    return kinds
+
+
+KINDS = build_kinds()
 HOST_WORKERS = ["宿主士兵", "宿主拾荒者", "宿主流浪者"]
-# 值是一个阵容，或阵容列表（随机阵容，列出全部可能）。
+
+# 阵容 = 种类列表，或种类列表的列表（随机阵容，等概率）。
 ENCOUNTERS = {
     "弱|猎犬群": ["猎犬", "猎犬"],
     "弱|失控的牧群": ["宿主士兵", "宿主士兵"],
@@ -79,107 +97,123 @@ ENCOUNTERS = {
     "精|狂暴宿主组长": ["狂暴宿主组长"],
     "首|爱国者": ["战士", "战士", "爱国者"],
 }
-# 各类型的开局上限与后续回合上限（普通难度）。
-# 首领参照原版第二幕：暴食者/知识恶魔第 1 回合不攻击，凯撒蟹约 15；之后单回合最高 31–35。
-CAPS = {"弱": (20, 26), "普": (22, 30), "精": (26, 36), "首": (20, 36)}
-TURNS = 4
+# 每场的起手偏移：固定阵容按站位；随机阵容按种类（{种类: 偏移}，未列出的为 0）。
+OPENINGS = {
+    "弱|猎犬群": (0, 1),
+    "弱|失控的牧群": (0, 2),
+    "弱|空降兵": (0,),
+    "弱|整合运动残党": (2, 0),
+    "普|猎犬群": (1, 2, 2),
+    "普|梅菲斯特的牧群": {"宿主士兵组长": 1, "宿主拾荒者": 1, "宿主流浪者": 1},
+    "普|狂暴宿主": {"狂暴宿主士兵": 1},
+    "普|特战分队": (2, 2, 0),
+    "普|游击队突击组": (2, 0, 2),
+    "普|狙击阵地": (1, 0, 2),
+    "普|炮击阵地": (1, 0),
+    "普|浸染": (2, 2),
+    "普|空降小队": (0, 1),
+    "普|增援信号": (2, 0),
+    "精|感染者之盾": (2, 1),
+    "精|垂直打击": (0, 1),
+    "精|萨卡兹仪式": (2, 2),
+    "精|狂暴宿主组长": (2,),
+    "首|爱国者": (0, 2, 0),
+}
+# 固定起手（不参与搜索）：传令兵组长先呼叫增援（同原版卵翼虫开场下蛋），组长空降兵先降落。
+FIXED = {"传令兵组长": [0], "突袭战士组长": [0]}
 
 
-def next_moves(name: str, last: int, step: int, offset: int) -> list:
-    """本回合可能出的招（招式序号）。固定循环只有一种；随机怪第一招按起手，之后不连用上一招。"""
-    n = len(M[name])
-    if name not in RANDOM:
-        return [(offset + step) % n]
-    if step == 0:
-        return [offset % n]
-    return [i for i in range(n) if i != last]
+def lineups_of(key):
+    v = ENCOUNTERS[key]
+    return v if isinstance(v[0], list) else [v]
 
 
-def simulate(lineup: list, offsets: tuple, turns: int = TURNS) -> list:
-    """所有随机出招序列的逐回合最大伤害。"""
-    worst = [0] * turns
-
-    def run(t, members, strength, vuln, summoned, dmg_so_far):
-        if t == turns:
-            for i, d in enumerate(dmg_so_far):
-                worst[i] = max(worst[i], d)
-            return
-        active = [i for i, m in enumerate(members) if m["start"] <= t]
-        choices = [next_moves(members[i]["name"], members[i]["last"], t - members[i]["start"], members[i]["offset"]) for i in active]
-        for picks in product(*choices):
-            mem = [dict(m) for m in members]
-            st = list(strength)
-            v = vuln
-            s = summoned
-            total = 0
-            for i, move in zip(active, picks):
-                m = mem[i]
-                m["last"] = move
-                _, dmg, hits, eff = M[m["name"]][move]
-                lead = sum(LEADERSHIP.get(o["name"], 0) for j, o in enumerate(mem) if j != i and o["start"] <= t)
-                if hits:
-                    per = dmg + st[i] + lead
-                    if v > 0:
-                        per = int(per * 1.5)
-                    total += per * hits
-                st[i] += eff.get("self_str", 0)
-                if eff.get("vuln"):
-                    v = max(v, eff["vuln"])
-                if eff.get("summon") and s < SUMMON_CAP:
-                    s += 1
-                    name = eff["summon"]
-                    # 与游戏里一致：新召来的怪起手用场上第一只同种怪本回合出的招。
-                    same = next((o for o in mem if o["name"] == name and o["start"] <= t), None)
-                    mem.append({"name": name, "offset": same["last"] if same else 0, "last": -1, "start": t + 1})
-                    st.append(0)
-            run(t + 1, mem, st, max(0, v - 1), s, dmg_so_far + [total])
-
-    members = [{"name": n, "offset": o, "last": -1, "start": 0} for n, o in zip(lineup, offsets)]
-    run(0, members, [0] * len(members), 0, 0, [])
-    return worst
+def start_state(kind, offset):
+    moves = M[kind][1]
+    return moves[offset % len(moves)][0]
 
 
-def options_for(name: str):
-    return FIXED.get(name) or range(len(M[name]))
+def run(key, openings, asc):
+    dists = []
+    for lu in lineups_of(key):
+        if isinstance(openings, dict):
+            offs = [openings.get(k, 0) for k in lu]
+        else:
+            offs = openings
+        dists.append(simulate(KINDS, [(k, start_state(k, o)) for k, o in zip(lu, offs)], asc))
+    return summarize(dists)
 
 
-def choose(kind: str, lineups: list):
-    """固定阵容按站位挑起手；随机阵容按种类挑起手（同种同起手），用所有组合里最差的结果打分。"""
-    first_cap, peak_cap = CAPS[kind]
-    randomized = len(lineups) > 1
-    keys = sorted({n for lu in lineups for n in lu}) if randomized else list(range(len(lineups[0])))
-    names = keys if randomized else lineups[0]
+# 按原版蜂巢同类型遭遇战 A0 的期望值定目标（见 vanilla_hive.py 的输出与 docs/战斗设计.md）。
+#   first：第 1 回合期望上限；total：前 4 回合总伤期望的目标；peak：任一回合最大值上限。
+TARGET = {
+    "弱": {"first": 20, "total": 62, "peak": 33},
+    "普": {"first": 16, "total": 66, "peak": 33},
+    "精": {"first": 24, "total": 78, "peak": 36},
+    "首": {"first": 15, "total": 70, "peak": 38},
+}
+
+
+def score(kind, s):
+    t = TARGET[kind]
+    over_first = max(0.0, s["mean"][0] - t["first"])
+    over_peak = sum(max(0, x - t["peak"]) for x in s["max"])
+    return over_first * 3 + over_peak * 2 + abs(s["total_mean"] - t["total"])
+
+
+def search(key):
+    kind = key.split("|")[0]
+    lus = lineups_of(key)
+    randomized = len(lus) > 1
+    names = sorted({n for lu in lus for n in lu}) if randomized else lus[0]
     best = None
-    for combo in product(*(options_for(n) for n in names)):
-        # 同一场里的同种怪起手必须不同（随机阵容里同种最多一只，按种类挑不受影响）。
+    for combo in product(*(FIXED.get(n) or range(len(M[n][1])) for n in names)):
         if not randomized and any(names[a] == names[b] and combo[a] == combo[b]
                                   for a in range(len(names)) for b in range(a + 1, len(names))):
-            continue
-        pick = dict(zip(keys, combo))
-        results = [simulate(lu, tuple(pick[n] if randomized else pick[i] for i, n in enumerate(lu))) for lu in lineups]
-        worst = max(results, key=lambda d: (max(0, d[0] - first_cap) * 3 + sum(max(0, x - peak_cap) for x in d[1:]), sum(d)))
-        over = sum(max(0, d[0] - first_cap) * 3 + sum(max(0, x - peak_cap) for x in d[1:]) for d in results)
-        under = sum(max(0, first_cap // 2 - d[0]) for d in results)
-        changes = sum(1 for c in combo if c)
-        score = (over, under, changes, -sum(sum(d) for d in results))
-        if best is None or score < best[0]:
-            best = (score, pick, results, worst)
+            continue  # 同一场里的同种怪起手必须错开
+        openings = dict(zip(names, combo)) if randomized else combo
+        s = run(key, openings, 0)
+        sc = (round(score(kind, s), 1), sum(1 for c in combo if c))
+        if best is None or sc < best[0]:
+            best = (sc, openings, s)
     return best
 
 
-def describe(pick: dict, lineup: list, randomized: bool) -> str:
-    parts = []
-    for i, n in enumerate(lineup):
-        o = pick[n] if randomized else pick[i]
-        parts.append(f"{n}:{M[n][o % len(M[n])][0]}" + ("*" if o else "") + ("(随)" if n in RANDOM else ""))
-    return " ".join(parts)
+def fmt(xs):
+    return "/".join(f"{x:.1f}".rstrip("0").rstrip(".") for x in xs)
+
+
+def describe(key, openings):
+    lu = lineups_of(key)[0] if not isinstance(openings, dict) else None
+    if lu is None:
+        return " ".join(f"{k}:{start_state(k, o)}" for k, o in openings.items()) or "全部第一招"
+    return " ".join(f"{k}:{start_state(k, o)}" for k, o in zip(lu, openings))
+
+
+def report():
+    vanilla = {0: vanilla_hive.run(0), 1: vanilla_hive.run(1)}
+    for asc, label in ((0, "A0"), (1, "A10")):
+        print(f"== 苦难摇篮 {label}（前 4 个敌方回合：期望 | 最大 | 总伤期望/最大）")
+        groups: dict = {}
+        for key in ENCOUNTERS:
+            kind, title = key.split("|")
+            s = run(key, OPENINGS[key], asc)
+            groups.setdefault(kind, []).append(s)
+            print(f"{kind} {title:8s} 期望 {fmt(s['mean']):24s} 最大 {fmt(s['max']):14s} 总 {s['total_mean']:5.1f}/{s['total_max']}")
+        print(f"-- 类型均值（苦难摇篮 vs 原版蜂巢 {label}）：第 1 回合期望 / 总伤期望")
+        for kind, ss in groups.items():
+            vs = [s for (k, _), s in vanilla[asc].items() if k == kind]
+            ours = (sum(s["mean"][0] for s in ss) / len(ss), sum(s["total_mean"] for s in ss) / len(ss))
+            base = (sum(s["mean"][0] for s in vs) / len(vs), sum(s["total_mean"] for s in vs) / len(vs))
+            print(f"{kind}  {ours[0]:5.1f} / {ours[1]:5.1f}    原版 {base[0]:5.1f} / {base[1]:5.1f}")
 
 
 if __name__ == "__main__":
-    for key, value in ENCOUNTERS.items():
-        kind, title = key.split("|")
-        lineups = value if isinstance(value[0], list) else [value]
-        (over, _, _, _), pick, results, _ = choose(kind, lineups)
-        flag = "" if over == 0 else "  <-- 超标"
-        for lu, dmg in zip(lineups, results):
-            print(f"{kind} {title:8s} {dmg}  起手 {describe(pick, lu, len(lineups) > 1)}{flag}")
+    if "--search" in sys.argv:
+        for key in ENCOUNTERS:
+            sc, openings, s = search(key)
+            cur = run(key, OPENINGS[key], 0)
+            mark = "" if openings == OPENINGS[key] else f"  （现为 {OPENINGS[key]}，分 {round(score(key.split('|')[0], cur), 1)}）"
+            print(f"{key:14s} {openings}  分 {sc[0]}  期望 {fmt(s['mean'])} 总 {s['total_mean']:.1f}  {describe(key, openings)}{mark}")
+    else:
+        report()

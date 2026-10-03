@@ -205,8 +205,9 @@ fight reunion_mercenary_sarkaz_caster_test
 部分遭遇战阵容随机。定义在 `src/Encounters/ChernobogEncounters.cs`，由 `ChernobogAct.GenerateAllEncounters` 接入；
 萨卡兹雇佣军是换皮，不进池；Boss 固定为爱国者（`ReunionPatriotBoss`，`fight reunion_patriot_boss`）。
 各敌人机制、数值（对照原版蜂巢的血量与伤害）、每场组成见 [战斗设计](docs/战斗设计.md)（第三版，待审）。
-各怪的起手招由遭遇战的 `SetOpenings` / `SetOpeningsByType` 指定，取值来自 `docs/tools/opening_sim.py`（按原版蜂巢的开局伤害区间模拟前 4 回合，
-含召唤与随机阵容），改阵容或数值后要重跑它。自检会逐场核对标题本地化，用多个种子抽随机阵容，把每个组合的总血量与实际起手招打进日志。
+各怪的起手招由遭遇战的 `SetOpenings` / `SetOpeningsByType` 指定，取值来自 `docs/tools/opening_sim.py --search`（模拟前 4 个敌方回合，
+含召唤、随机出招与随机阵容，A0 / A10 两档）；难度基准是 `docs/tools/vanilla_hive.py` 用同一引擎算出的原版蜂巢各类型平均开局伤害。
+改阵容或数值后要重跑，并同步模拟器里的 `OPENINGS`。自检会逐场核对标题本地化，用多个种子抽随机阵容，把每个组合的总血量与实际起手招打进日志。
 这些遭遇战同样可以用 `fight <id>` 直接进，例如 `fight reunion_vertical_strike_elite`。
 
 ## 已知限制

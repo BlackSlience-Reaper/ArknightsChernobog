@@ -39,7 +39,7 @@ public sealed class ReunionGuerrillaMortarGunnerLeader : ReunionMonster
 
 	private int ReloadBlock => ToughValue(14, 12);
 
-	private int BombardDamage => DeadlyValue(24, 22);
+	private int BombardDamage => DeadlyValue(22, 20);
 
 	private int BarrageDamage => DeadlyValue(6, 5);
 

@@ -206,6 +206,20 @@ internal static class ChernobogSelfTest
 			return $"{pairs.Length} pairs";
 		});
 
+		Check("host remnant only in normal herd", () =>
+		{
+			// 弱怪版牧群关掉残存（不要求群体伤害），普通版保留；开关在怪物加入战斗时才读，这里核对遭遇战生成的可变怪物。
+			bool[] weak = ((ReunionEncounter)ModelDb.Encounter<ReunionHostStragglersWeak>()).CreateMonsters(new Rng(1))
+				.Cast<ReunionHostMonster>().Select(m => m.HasRemnant).ToArray();
+			bool[] normal = ((ReunionEncounter)ModelDb.Encounter<ReunionHostHerdNormal>()).CreateMonsters(new Rng(1))
+				.Cast<ReunionHostMonster>().Select(m => m.HasRemnant).ToArray();
+			Require(weak.Length == 2 && weak.All(h => !h), $"weak {string.Join(",", weak)}");
+			Require(normal.Length == 3 && normal.All(h => h), $"normal {string.Join(",", normal)}");
+			// 原型不能被遭遇战改到（ConfigureMonsters 只动可变副本）。
+			Require(ModelDb.Monster<ReunionHostSoldier>().HasRemnant, "canonical host soldier lost remnant");
+			return $"weak {weak.Length}x off, normal {normal.Length}x on";
+		});
+
 		Check("herald summons reinforcements", () =>
 		{
 			// 照原版卵翼虫：开场先呼叫增援；战旗之后按遭遇战有没有空槽分支到再呼叫或号令。

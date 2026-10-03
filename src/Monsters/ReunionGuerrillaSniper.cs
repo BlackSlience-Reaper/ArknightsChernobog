@@ -28,7 +28,7 @@ public sealed class ReunionGuerrillaSniper : ReunionMonster
 
 	public override DamageSfxType TakeDamageSfxType => DamageSfxType.Fur;
 
-	private int ShotDamage => DeadlyValue(10, 9);
+	private int ShotDamage => DeadlyValue(8, 7);
 
 	private int AimStrength => DeadlyValue(3, 2);
 

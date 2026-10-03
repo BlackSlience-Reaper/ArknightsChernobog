@@ -44,7 +44,7 @@ public sealed class ReunionGuerrillaHeraldLeader : ReunionMonster
 
 	public override DamageSfxType TakeDamageSfxType => DamageSfxType.Fur;
 
-	private int LeadershipAmount => DeadlyValue(4, 3);
+	private int LeadershipAmount => DeadlyValue(3, 2);
 
 	private int StrikeDamage => DeadlyValue(9, 8);
 
